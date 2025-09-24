@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MainApp.Models
 {
-    class Fanstatus
+   public class Fanstatus
     {
         public string Id { get; set; } =Guid.NewGuid().ToString();
         public bool IsRunning { get; set; } = false;
