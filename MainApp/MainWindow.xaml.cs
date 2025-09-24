@@ -1,8 +1,12 @@
 ﻿
+using MainApp.Models;
 using MainApp.Services;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -28,6 +32,10 @@ namespace MainApp
         private Storyboard? _rotatingFAN;
         private DispatcherTimer _Speedtimer;
         private List<string> _eventLog;
+
+        public static readonly HttpClient http = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
+
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -46,6 +54,7 @@ namespace MainApp
             {
                 _Speedtimer.Stop();
                 LogMessage($"Speed set to {_pendingSpeed:0.00}");
+                _ = SendFanStatus();
 
             };
             _eventLog = [];
@@ -56,6 +65,8 @@ namespace MainApp
 
         }
 
+      
+
         private void Btn_OnOff_Click(object sender, RoutedEventArgs e)
         {
 
@@ -64,7 +75,7 @@ namespace MainApp
 
         }
 
-        private void ToggleRunningState()
+        private  void ToggleRunningState()
         {
 
             DeviceAction.ToggleState();
@@ -87,6 +98,8 @@ namespace MainApp
                 LogMessage("Fan Stopped");
             }
 
+            //_= SendFanStatus();
+
             //if (!_IsRunning)
             //{
 
@@ -102,7 +115,7 @@ namespace MainApp
 
         }
 
-        private void Slider_Speed_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private  void Slider_Speed_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (DeviceAction.IsRunning && _rotatingFAN is not null)
             {
@@ -111,10 +124,36 @@ namespace MainApp
                 _Speedtimer?.Stop();
                 _Speedtimer.Start();
 
+               //_ = SendFanStatus();
+
 
             }
 
+           
 
+
+        }
+
+        public async Task SendFanStatus()
+        {
+            try
+            {
+                var Status = new Fanstatus
+                {
+                    IsRunning = DeviceAction.IsRunning,
+                    Speed = _pendingSpeed
+
+                };
+                var response = await http.PostAsJsonAsync("/fanStatus", Status);
+                if (!response.IsSuccessStatusCode)
+                {
+                    LogMessage($"failed to send status{response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending status{ex.Message}");
+            }
         }
 
         private void LogMessage(string message)
