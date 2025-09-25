@@ -98,7 +98,7 @@ namespace MainApp
                 LogMessage("Fan Stopped");
             }
 
-            //_= SendFanStatus();
+            _= SendFanStatus();
 
             //if (!_IsRunning)
             //{
@@ -124,7 +124,7 @@ namespace MainApp
                 _Speedtimer?.Stop();
                 _Speedtimer.Start();
 
-               //_ = SendFanStatus();
+              //_ = SendFanStatus();
 
 
             }
