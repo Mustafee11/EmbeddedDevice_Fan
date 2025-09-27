@@ -1,6 +1,7 @@
 ﻿
 using MainApp.Models;
 using MainApp.Services;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Net.Http;
@@ -35,11 +36,15 @@ namespace MainApp
 
         public static readonly HttpClient http = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
 
+        private HubConnection? _hub;
+
         
         public MainWindow()
         {
             InitializeComponent();
             InitailizeFeatures();
+            SetSignalR();
+            
 
         }
 
@@ -154,6 +159,31 @@ namespace MainApp
             {
                 Console.WriteLine($"Error sending status{ex.Message}");
             }
+        }
+
+        public async void SetSignalR()
+        {
+            var clientId = $"hmi-{Environment.MachineName}";
+
+            _hub = new HubConnectionBuilder()
+                .WithUrl($"http://localhost:5000/hmi?clientId={clientId}")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hub.On<CommandControl>("CommandsReviced", (cmds) =>
+            {
+                App.Current.Dispatcher.Invoke(() => HandleCommands(cmds));
+            });
+
+            await _hub.StartAsync();
+        }
+
+        private void HandleCommands(CommandControl cmds)
+        {
+          if(cmds.Action == "Turn on" && !DeviceAction.IsRunning) 
+                ToggleRunningState();
+          else if(cmds.Action == "Turn off" && DeviceAction.IsRunning)
+                ToggleRunningState();
         }
 
         private void LogMessage(string message)
