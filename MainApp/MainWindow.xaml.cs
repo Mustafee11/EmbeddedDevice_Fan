@@ -180,10 +180,28 @@ namespace MainApp
 
         private void HandleCommands(CommandControl cmds)
         {
-          if(cmds.Action == "Turn on" && !DeviceAction.IsRunning) 
-                ToggleRunningState();
-          else if(cmds.Action == "Turn off" && DeviceAction.IsRunning)
-                ToggleRunningState();
+            switch (cmds.Action)
+            {
+                case "TurnOn":
+                    if (!DeviceAction.IsRunning)
+                     ToggleRunningState();
+                    break;
+                case "TurnOff":
+                    if (DeviceAction.IsRunning)
+                        ToggleRunningState();
+                    break;
+                case "SetSpeed":
+                    if(DeviceAction.IsRunning && cmds.Value.HasValue)
+                    {
+                        Slider_Speed.Value =  cmds.Value.Value;
+                        _rotatingFAN?.SetSpeedRatio(cmds.Value.Value);
+                        _pendingSpeed = cmds.Value.Value;
+                       
+
+                    }
+                    break;
+
+            }
         }
 
         private void LogMessage(string message)
