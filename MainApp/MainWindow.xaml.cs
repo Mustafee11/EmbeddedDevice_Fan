@@ -3,10 +3,12 @@ using MainApp.Models;
 using MainApp.Services;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
@@ -38,10 +40,21 @@ namespace MainApp
 
         private HubConnection? _hub;
 
-        
+        private string _settingsFilePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EmbbededDevice",
+            "settings.json"
+
+            );
+
+        private DeviceSettings _settings = new DeviceSettings();
+
+
         public MainWindow()
         {
             InitializeComponent();
+
+            LoadSettings();
+
             InitailizeFeatures();
             SetSignalR();
             
@@ -166,7 +179,7 @@ namespace MainApp
             var clientId = $"hmi-{Environment.MachineName}";
 
             _hub = new HubConnectionBuilder()
-                .WithUrl($"http://localhost:5000/hmi?clientId={clientId}")
+                .WithUrl($"{_settings.ApiUrl}/hmi?clientId={clientId}")
                 .WithAutomaticReconnect()
                 .Build();
 
@@ -222,5 +235,61 @@ namespace MainApp
 
             }
         }
+
+        private void LoadSettings()
+        {
+            try
+            {
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_settingsFilePath)!);
+
+                if (File.Exists(_settingsFilePath))
+                {
+                    var json = File.ReadAllText(_settingsFilePath);
+                    var settings = JsonSerializer.Deserialize<DeviceSettings>(json);
+                    if (settings != null)
+                    {
+                        _settings = settings;
+
+
+
+                    }
+                    else
+                    {
+                        SaveSettings();
+                    }
+                    
+                    
+
+                    http.BaseAddress = new Uri(_settings.ApiUrl);
+
+                }
+                else
+                {
+                    SaveSettings() ;
+                }
+
+
+            }
+            catch
+            {
+                http.BaseAddress = new Uri(_settings.ApiUrl);
+            }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_settingsFilePath)!);
+                File.WriteAllText(_settingsFilePath, json);
+            }
+            catch
+            {
+
+            }
+        }
+
+       
     }
 }
