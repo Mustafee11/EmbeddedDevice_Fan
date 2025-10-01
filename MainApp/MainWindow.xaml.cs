@@ -74,6 +74,11 @@ namespace MainApp
                 LogMessage($"Speed set to {_pendingSpeed:0.00}");
                 _ = SendFanStatus();
 
+                if (_pendingSpeed > 2)
+                {
+                    _ = SendAlert();
+                }
+
             };
             _eventLog = [];
 
@@ -107,6 +112,8 @@ namespace MainApp
                 _rotatingFAN!.Begin();
                 _rotatingFAN.SetSpeedRatio(Slider_Speed.Value);
                 LogMessage("Fan Started");
+
+                 
 
             }
             else
@@ -142,7 +149,9 @@ namespace MainApp
                 _Speedtimer?.Stop();
                 _Speedtimer.Start();
 
-              //_ = SendFanStatus();
+               
+
+                //_ = SendFanStatus();
 
 
             }
@@ -163,6 +172,32 @@ namespace MainApp
 
                 };
                 var response = await http.PostAsJsonAsync("/fanStatus", Status);
+                if (!response.IsSuccessStatusCode)
+                {
+                    LogMessage($"failed to send status{response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending status{ex.Message}");
+            }
+        }
+
+        public async Task SendAlert()
+        {
+            try
+            {
+                var alert = new Alert
+                {
+                    TimeStamp = DateTime.Now,
+                    Severity = "High",
+                    Type = "Overheating",
+                    Machine = "EmbeddedFan",
+                    Message = "Temp: 100 °C"
+
+                };
+
+                var response = await http.PostAsJsonAsync<Alert>("/alerts", alert);
                 if (!response.IsSuccessStatusCode)
                 {
                     LogMessage($"failed to send status{response.StatusCode}");
