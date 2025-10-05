@@ -211,19 +211,27 @@ namespace MainApp
 
         public async void SetSignalR()
         {
-            var clientId = $"hmi-{Environment.MachineName}";
-
-            _hub = new HubConnectionBuilder()
-                .WithUrl($"{_settings.ApiUrl}/hmi?clientId={clientId}")
-                .WithAutomaticReconnect()
-                .Build();
-
-            _hub.On<CommandControl>("CommandsReviced", (cmds) =>
+            try
             {
-                App.Current.Dispatcher.Invoke(() => HandleCommands(cmds));
-            });
+                var clientId = $"hmi-{Environment.MachineName}";
 
-            await _hub.StartAsync();
+                _hub = new HubConnectionBuilder()
+                    .WithUrl($"{_settings.ApiUrl}/hmi?clientId={clientId}")
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                _hub.On<CommandControl>("CommandsReviced", (cmds) =>
+                {
+                    App.Current.Dispatcher.Invoke(() => HandleCommands(cmds));
+                });
+
+                await _hub.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error connecting to server {ex.Message}");
+
+            }
         }
 
         private void HandleCommands(CommandControl cmds)
