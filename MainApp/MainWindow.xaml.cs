@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -22,6 +23,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
+
 namespace MainApp
 {
     /// <summary>
@@ -35,8 +37,11 @@ namespace MainApp
         private Storyboard? _rotatingFAN;
         private DispatcherTimer _Speedtimer;
         private List<string> _eventLog;
+        private CancellationTokenSource _cts;
+      
 
         public static readonly HttpClient http = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
+        public static readonly HttpClient httpCommands = new HttpClient { BaseAddress = new Uri("http://localhost:5261") };
 
         private HubConnection? _hub;
 
@@ -56,8 +61,8 @@ namespace MainApp
             LoadSettings();
 
             InitailizeFeatures();
-            SetSignalR();
-            
+            _ = PollRestServer();
+
 
         }
 
@@ -209,29 +214,31 @@ namespace MainApp
             }
         }
 
-        public async void SetSignalR()
+        public async Task PollRestServer()
         {
-            try
+            while (true)
             {
-                var clientId = $"hmi-{Environment.MachineName}";
-
-                _hub = new HubConnectionBuilder()
-                    .WithUrl($"{_settings.ApiUrl}/hmi?clientId={clientId}")
-                    .WithAutomaticReconnect()
-                    .Build();
-
-                _hub.On<CommandControl>("CommandsReviced", (cmds) =>
+                try
                 {
-                    App.Current.Dispatcher.Invoke(() => HandleCommands(cmds));
-                });
+                    var cmds = await httpCommands.GetFromJsonAsync<CommandControl>("/command");
+                    if (cmds != null)
+                    {
+                        HandleCommands(cmds);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error polling commands: {ex.Message}");
+                }
+                await Task.Delay(2000);
 
-                await _hub.StartAsync();
             }
-            catch (Exception ex)
-            {
-                LogMessage($"Error connecting to server {ex.Message}");
 
-            }
+
+
+
+
+
         }
 
         private void HandleCommands(CommandControl cmds)
@@ -240,19 +247,19 @@ namespace MainApp
             {
                 case "TurnOn":
                     if (!DeviceAction.IsRunning)
-                     ToggleRunningState();
+                        ToggleRunningState();
                     break;
                 case "TurnOff":
                     if (DeviceAction.IsRunning)
                         ToggleRunningState();
                     break;
                 case "SetSpeed":
-                    if(DeviceAction.IsRunning && cmds.Value.HasValue)
+                    if (DeviceAction.IsRunning && cmds.Value.HasValue)
                     {
-                        Slider_Speed.Value =  cmds.Value.Value;
+                        Slider_Speed.Value = cmds.Value.Value;
                         _rotatingFAN?.SetSpeedRatio(cmds.Value.Value);
                         _pendingSpeed = cmds.Value.Value;
-                       
+
 
                     }
                     break;
