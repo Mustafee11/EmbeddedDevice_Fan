@@ -1,12 +1,18 @@
+
 using CommandApi.Models;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
+
+
 var app = builder.Build();
 
-CommandControl? lastCommand = null;
+CommandControl lastCommand = null;
+
 
 
 app.MapPost("/command", (CommandControl command) =>
@@ -18,6 +24,7 @@ app.MapPost("/command", (CommandControl command) =>
         {
             return Results.BadRequest("Invalid command data.");
         }
+
 
         lastCommand = command;
         return Results.Ok("Command received.");
@@ -33,13 +40,16 @@ app.MapPost("/command", (CommandControl command) =>
 }
 );
 
-app.MapGet("/command",  (HttpContext context) =>
+app.MapGet("/command",   (HttpContext context) =>
 {
-   
-    if(lastCommand == null)
+  
+
+    if (lastCommand == null)
      return Results.NoContent();
-      var cmd = lastCommand;
+     
+   var cmd = lastCommand;
     lastCommand = null;
+
     return Results.Json(cmd);
 
 
