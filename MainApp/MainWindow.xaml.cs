@@ -230,7 +230,7 @@ namespace MainApp
                 {
                     Console.WriteLine($"Error polling commands: {ex.Message}");
                 }
-                await Task.Delay(2000);
+                await Task.Delay(500);
 
             }
 
