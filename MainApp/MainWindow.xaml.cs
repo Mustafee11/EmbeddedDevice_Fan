@@ -220,17 +220,31 @@ namespace MainApp
             {
                 try
                 {
-                    var cmds = await httpCommands.GetFromJsonAsync<CommandControl>("/command");
+                    var response = await httpCommands.GetAsync("/command");
+                    if(response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                    {
+                       
+                        await Task.Delay(2000);
+                        continue;
+                    }
+
+                    response.EnsureSuccessStatusCode();
+                    var cmds = await response.Content.ReadFromJsonAsync<CommandControl>();
                     if (cmds != null)
                     {
                         HandleCommands(cmds);
                     }
+
+                }
+                catch(JsonException jex)
+                {
+                    Console.WriteLine($"Error parsing command response: {jex.Message}");
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error polling commands: {ex.Message}");
                 }
-                await Task.Delay(500);
+                await Task.Delay(2000);
 
             }
 
